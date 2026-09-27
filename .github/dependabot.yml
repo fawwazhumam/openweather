@@ -2,10 +2,14 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+    target-branch: staging
     schedule:
       interval: weekly
 
   - package-ecosystem: docker-compose
     directory: /
+    target-branch: staging
     schedule:
       interval: weekly
+
+
