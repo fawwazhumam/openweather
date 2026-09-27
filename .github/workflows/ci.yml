@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint Python
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: pipx run ruff==0.16.9 check .
+
+  compose:
+    name: Validate docker-compose
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker compose --env-file .env.example config --quiet
+
+  dag-test:
+    name: Test DAG integrity
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Load DAGs with the same Airflow image as docker-compose
+        run: |
+          IMAGE=$(docker compose --env-file .env.example config --images | grep '^apache/airflow')
+          echo "Using $IMAGE"
+          docker run --rm \
+            -v "$PWD/dags:/opt/airflow/dags:ro" \
+            -v "$PWD/tests:/opt/airflow/tests:ro" \
+            "$IMAGE" \
+            bash -c "airflow db migrate > /dev/null && python /opt/airflow/tests/test_dag_integrity.py"

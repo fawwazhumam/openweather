@@ -1,0 +1,93 @@
+name: Deploy
+
+on:
+  push:
+    branches: [staging, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy-staging:
+    name: Deploy to staging
+    if: github.ref == 'refs/heads/staging'
+    needs: ci
+    runs-on: ubuntu-24.04
+    environment: staging
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Deploy
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          AIRFLOW_PORT: ${{ vars.AIRFLOW_PORT }}
+        run: ssh "$SSH_USER@$SSH_HOST" 'bash -s' -- "$DEPLOY_PATH" "$GITHUB_SHA" "$AIRFLOW_PORT" < scripts/deploy.sh
+
+  deploy-production:
+    name: Deploy to production
+    if: github.ref == 'refs/heads/main'
+    needs: ci
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Deploy
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          AIRFLOW_PORT: ${{ vars.AIRFLOW_PORT }}
+        run: ssh "$SSH_USER@$SSH_HOST" 'bash -s' -- "$DEPLOY_PATH" "$GITHUB_SHA" "$AIRFLOW_PORT" < scripts/deploy.sh
+
+  # Staging is only needed until a release is promoted; stop it to free RAM on the 4 GB VPS.
+  stop-staging:
+    name: Stop staging
+    needs: deploy-production
+    runs-on: ubuntu-24.04
+    environment: staging
+    steps:
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Stop staging stack (volumes are kept)
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+        run: ssh "$SSH_USER@$SSH_HOST" "cd '$DEPLOY_PATH' && docker compose down"

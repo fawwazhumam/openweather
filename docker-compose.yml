@@ -1,0 +1,48 @@
+services:
+  # postgresql Database for storing weather data
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - airflow_net
+
+  # DBeaver for visual management postgre
+
+  # Apache Airflow for scheduling and ETL Logic
+  airflow:
+    image: apache/airflow:3.1.0
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
+      AIRFLOW__API__WORKERS: 1
+      AIRFLOW__CORE__PARALLELISM: 4
+    volumes:
+      - ./dags:/opt/airflow/dags
+    ports:
+      - "127.0.0.1:${AIRFLOW_PORT:-8080}:8080"
+    command: standalone
+    networks:
+      - airflow_net
+
+volumes:
+  postgres_data:
+
+networks:
+  airflow_net:

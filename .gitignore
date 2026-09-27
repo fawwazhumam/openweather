@@ -1,0 +1,18 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+fawwazenv/
+venv/
+.venv/
+
+# airflow & database
+logs/
+airflow/logs/
+*.db
+*.sqlite
+postgres_data/
