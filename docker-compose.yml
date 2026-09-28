@@ -24,7 +24,7 @@ services:
 
   # Apache Airflow for scheduling and ETL Logic
   airflow:
-    image: apache/airflow:3.1.0
+    image: apache/airflow:3.3.2
     restart: always
     depends_on:
       postgres:
