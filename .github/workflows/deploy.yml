@@ -43,17 +43,17 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null \
             || { echo "::error::SSH_PRIVATE_KEY is not a valid private key"; exit 1; }
-          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          if ! ssh-keygen -F "$SSH_HOST" > /dev/null; then
-            # Describe the mismatch without printing the host or keys
-            host_ws=no; [[ "$SSH_HOST" =~ [[:space:]] ]] && host_ws=yes
-            entries=$(grep -Ev '^[[:space:]]*(#|$)' ~/.ssh/known_hosts || true)
-            count=$(printf '%s' "$entries" | grep -c . || true)
-            fields=$(printf '%s\n' "$entries" | awk 'NF {printf "%s%d", sep, NF; sep=","}')
-            matches=$(printf '%s\n' "$entries" | awk -v h="$SSH_HOST" 'NF {printf "%s%s", sep, ($1==h ? "yes" : "no"); sep=","}')
-            echo "::error::SSH_KNOWN_HOSTS has no entry matching SSH_HOST (SSH_HOST has whitespace: $host_ws; entries: $count; fields per entry: $fields; host field matches: $matches)"
+          if [[ "$SSH_HOST" == *[@/:[:space:]]* ]]; then
+            echo "::error::SSH_HOST must be only the IP address (no user@, port, URL or spaces)"
             exit 1
           fi
+          # Pin the host key(s) from SSH_KNOWN_HOSTS to SSH_HOST. The key is still verified;
+          # only the address label is normalized, so a typo'd label can't break the match.
+          printf '%s\n' "$SSH_KNOWN_HOSTS" \
+            | awk -v h="$SSH_HOST" '!/^[[:space:]]*(#|$)/ && NF >= 3 {print h, $2, $3}' \
+            > ~/.ssh/known_hosts
+          [ -s ~/.ssh/known_hosts ] \
+            || { echo "::error::SSH_KNOWN_HOSTS contains no host key line"; exit 1; }
       - name: Deploy
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -90,17 +90,17 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null \
             || { echo "::error::SSH_PRIVATE_KEY is not a valid private key"; exit 1; }
-          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          if ! ssh-keygen -F "$SSH_HOST" > /dev/null; then
-            # Describe the mismatch without printing the host or keys
-            host_ws=no; [[ "$SSH_HOST" =~ [[:space:]] ]] && host_ws=yes
-            entries=$(grep -Ev '^[[:space:]]*(#|$)' ~/.ssh/known_hosts || true)
-            count=$(printf '%s' "$entries" | grep -c . || true)
-            fields=$(printf '%s\n' "$entries" | awk 'NF {printf "%s%d", sep, NF; sep=","}')
-            matches=$(printf '%s\n' "$entries" | awk -v h="$SSH_HOST" 'NF {printf "%s%s", sep, ($1==h ? "yes" : "no"); sep=","}')
-            echo "::error::SSH_KNOWN_HOSTS has no entry matching SSH_HOST (SSH_HOST has whitespace: $host_ws; entries: $count; fields per entry: $fields; host field matches: $matches)"
+          if [[ "$SSH_HOST" == *[@/:[:space:]]* ]]; then
+            echo "::error::SSH_HOST must be only the IP address (no user@, port, URL or spaces)"
             exit 1
           fi
+          # Pin the host key(s) from SSH_KNOWN_HOSTS to SSH_HOST. The key is still verified;
+          # only the address label is normalized, so a typo'd label can't break the match.
+          printf '%s\n' "$SSH_KNOWN_HOSTS" \
+            | awk -v h="$SSH_HOST" '!/^[[:space:]]*(#|$)/ && NF >= 3 {print h, $2, $3}' \
+            > ~/.ssh/known_hosts
+          [ -s ~/.ssh/known_hosts ] \
+            || { echo "::error::SSH_KNOWN_HOSTS contains no host key line"; exit 1; }
       - name: Deploy
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -134,17 +134,17 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null \
             || { echo "::error::SSH_PRIVATE_KEY is not a valid private key"; exit 1; }
-          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          if ! ssh-keygen -F "$SSH_HOST" > /dev/null; then
-            # Describe the mismatch without printing the host or keys
-            host_ws=no; [[ "$SSH_HOST" =~ [[:space:]] ]] && host_ws=yes
-            entries=$(grep -Ev '^[[:space:]]*(#|$)' ~/.ssh/known_hosts || true)
-            count=$(printf '%s' "$entries" | grep -c . || true)
-            fields=$(printf '%s\n' "$entries" | awk 'NF {printf "%s%d", sep, NF; sep=","}')
-            matches=$(printf '%s\n' "$entries" | awk -v h="$SSH_HOST" 'NF {printf "%s%s", sep, ($1==h ? "yes" : "no"); sep=","}')
-            echo "::error::SSH_KNOWN_HOSTS has no entry matching SSH_HOST (SSH_HOST has whitespace: $host_ws; entries: $count; fields per entry: $fields; host field matches: $matches)"
+          if [[ "$SSH_HOST" == *[@/:[:space:]]* ]]; then
+            echo "::error::SSH_HOST must be only the IP address (no user@, port, URL or spaces)"
             exit 1
           fi
+          # Pin the host key(s) from SSH_KNOWN_HOSTS to SSH_HOST. The key is still verified;
+          # only the address label is normalized, so a typo'd label can't break the match.
+          printf '%s\n' "$SSH_KNOWN_HOSTS" \
+            | awk -v h="$SSH_HOST" '!/^[[:space:]]*(#|$)/ && NF >= 3 {print h, $2, $3}' \
+            > ~/.ssh/known_hosts
+          [ -s ~/.ssh/known_hosts ] \
+            || { echo "::error::SSH_KNOWN_HOSTS contains no host key line"; exit 1; }
       - name: Stop staging stack (volumes are kept)
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
