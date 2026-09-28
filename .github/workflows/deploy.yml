@@ -44,8 +44,16 @@ jobs:
           ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null \
             || { echo "::error::SSH_PRIVATE_KEY is not a valid private key"; exit 1; }
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          ssh-keygen -F "$SSH_HOST" > /dev/null \
-            || { echo "::error::SSH_KNOWN_HOSTS has no entry matching SSH_HOST"; exit 1; }
+          if ! ssh-keygen -F "$SSH_HOST" > /dev/null; then
+            # Describe the mismatch without printing the host or keys
+            host_ws=no; [[ "$SSH_HOST" =~ [[:space:]] ]] && host_ws=yes
+            entries=$(grep -Ev '^[[:space:]]*(#|$)' ~/.ssh/known_hosts || true)
+            count=$(printf '%s' "$entries" | grep -c . || true)
+            fields=$(printf '%s\n' "$entries" | awk 'NF {printf "%s%d", sep, NF; sep=","}')
+            matches=$(printf '%s\n' "$entries" | awk -v h="$SSH_HOST" 'NF {printf "%s%s", sep, ($1==h ? "yes" : "no"); sep=","}')
+            echo "::error::SSH_KNOWN_HOSTS has no entry matching SSH_HOST (SSH_HOST has whitespace: $host_ws; entries: $count; fields per entry: $fields; host field matches: $matches)"
+            exit 1
+          fi
       - name: Deploy
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -83,8 +91,16 @@ jobs:
           ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null \
             || { echo "::error::SSH_PRIVATE_KEY is not a valid private key"; exit 1; }
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          ssh-keygen -F "$SSH_HOST" > /dev/null \
-            || { echo "::error::SSH_KNOWN_HOSTS has no entry matching SSH_HOST"; exit 1; }
+          if ! ssh-keygen -F "$SSH_HOST" > /dev/null; then
+            # Describe the mismatch without printing the host or keys
+            host_ws=no; [[ "$SSH_HOST" =~ [[:space:]] ]] && host_ws=yes
+            entries=$(grep -Ev '^[[:space:]]*(#|$)' ~/.ssh/known_hosts || true)
+            count=$(printf '%s' "$entries" | grep -c . || true)
+            fields=$(printf '%s\n' "$entries" | awk 'NF {printf "%s%d", sep, NF; sep=","}')
+            matches=$(printf '%s\n' "$entries" | awk -v h="$SSH_HOST" 'NF {printf "%s%s", sep, ($1==h ? "yes" : "no"); sep=","}')
+            echo "::error::SSH_KNOWN_HOSTS has no entry matching SSH_HOST (SSH_HOST has whitespace: $host_ws; entries: $count; fields per entry: $fields; host field matches: $matches)"
+            exit 1
+          fi
       - name: Deploy
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -119,8 +135,16 @@ jobs:
           ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null \
             || { echo "::error::SSH_PRIVATE_KEY is not a valid private key"; exit 1; }
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          ssh-keygen -F "$SSH_HOST" > /dev/null \
-            || { echo "::error::SSH_KNOWN_HOSTS has no entry matching SSH_HOST"; exit 1; }
+          if ! ssh-keygen -F "$SSH_HOST" > /dev/null; then
+            # Describe the mismatch without printing the host or keys
+            host_ws=no; [[ "$SSH_HOST" =~ [[:space:]] ]] && host_ws=yes
+            entries=$(grep -Ev '^[[:space:]]*(#|$)' ~/.ssh/known_hosts || true)
+            count=$(printf '%s' "$entries" | grep -c . || true)
+            fields=$(printf '%s\n' "$entries" | awk 'NF {printf "%s%d", sep, NF; sep=","}')
+            matches=$(printf '%s\n' "$entries" | awk -v h="$SSH_HOST" 'NF {printf "%s%s", sep, ($1==h ? "yes" : "no"); sep=","}')
+            echo "::error::SSH_KNOWN_HOSTS has no entry matching SSH_HOST (SSH_HOST has whitespace: $host_ws; entries: $count; fields per entry: $fields; host field matches: $matches)"
+            exit 1
+          fi
       - name: Stop staging stack (volumes are kept)
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
